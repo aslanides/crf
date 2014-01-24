@@ -1,4 +1,0 @@
-crf
-===
-
-CRF chain implementation
