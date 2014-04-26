@@ -14,7 +14,6 @@ function getMessages!(sto)
 		for j=1:2 α[i][j] = phi[i-1][j] *  α[i-1][j]; end
 		for j=1:2 β[N-i+1][j] = phi[N-i+2][j] * β[N-i+2][j]; end
 		
-		#@time α[i] = psi[i-1]' * α[i]
 		tmp = α[i][1]
 		α[i][1] = α[i][1] * psi[i-1][1,1] + α[i][2] * psi[i-1][2,1]
 		α[i][2] = tmp * psi[i-1][1,2] + α[i][2] * psi[i-1][2,2]
@@ -62,12 +61,9 @@ function getMarginals!(sto)
 	for i=1:2 α[N][i] .*= phi[N][i]; end
 	
 	for n=1:N
-		
-			for i=1:2 σ[n][i] = α[n][i] .* β[n][i]; end
-			tmp = sum(σ[n])
-			for i=1:2 σ[n][i] /= tmp; end
-			#@time for i=1:2 σ[n][i] /= tmp; end
-		
+		for i=1:2 σ[n][i] = α[n][i] .* β[n][i]; end
+		tmp = sum(σ[n])
+		for i=1:2 σ[n][i] /= tmp; end
 	end
 	return sto.μ
 end
