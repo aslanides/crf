@@ -14,7 +14,7 @@ function test{T}(::Type{T}=Float64,ε=1e-8)
 		return features, labels
 	end
 
-	function shizen!(feat,sto)
+	function common!(feat,sto)
 		fill!(μ_model,0.)
 		fill!(μ_emp,0.)
 		big_exp!(sto.θ,sto.ψ)
@@ -26,21 +26,21 @@ function test{T}(::Type{T}=Float64,ε=1e-8)
 	function ∂A∂θ{T}(θ::Vector{T},feat)
 		sto = init_storage(T,width)
 		sto.θ = unpack_stats(θ)
-		shizen!(feat,sto)
+		common!(feat,sto)
 		return logPartition(sto.θ,sto.μ), pack_stats(sto.μ)
 	end
 
 	function ∂A∂w{T}(weights::Vector{T},feat)
 		sto = init_storage(T,width)
 		big_dot!(weights,feat,sto.θ)
-		shizen!(feat,sto)
+		common!(feat,sto)
 		return logPartition(sto.θ,sto.μ), μ_model
 	end
 
 	function ∂Λ∂w{T}(weights::Vector{T},feat,lab)
 		sto = init_storage(T,width)
 		big_dot!(weights,features[1][1],sto.θ)
-		shizen!(feat,sto)
+		common!(feat,sto)
 		empiricals!(feat,lab,μ_emp)
 		return dot(weights,μ_emp) - logPartition(sto.θ,sto.μ), μ_emp - μ_model
 	end
