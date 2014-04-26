@@ -10,20 +10,19 @@ function getMessages!(sto)
 	N = length(α)
 	
 	for i=2:N
-		@devec begin
-			α[i] = (phi[i-1] .*  α[i-1])
-			β[N-i+1] = phi[N-i+2] .* β[N-i+2]
-		end
+		
+		for j=1:2 α[i][j] = phi[i-1][j] *  α[i-1][j]; end
+		for j=1:2 β[N-i+1][j] = phi[N-i+2][j] * β[N-i+2][j]; end
+		
 
 		α[i] = psi[i-1]' * α[i] # devec?
 		β[N-i+1] = psi[N-i+1] * β[N-i+1]
 		
-		@devec begin
-			tmp = sum(α[i])
-			α[i] ./= tmp
-			tmp = sum(β[N-i+1])
-			β[N-i+1] ./= tmp
-		end
+	
+		tmp = sum(α[i])
+		for j=1:2 α[i][j] /= tmp; end
+		tmp = sum(β[N-i+1])
+		for j=1:2 β[N-i+1][j] /= tmp; end	
 	end
 end
 ##################
@@ -38,32 +37,33 @@ function getMarginals!(sto)
 	π = sto.μ.pairs
 	σ = sto.μ.single
 	N = length(α)
-	u = sto.temp
-	
+		
 	for n=1:N-1
-		@devec begin
-			u = phi[n+1] .* β[n+1]
-			α[n] .*= phi[n]
-		end
-			v = psi[n]
-			tmp1 = α[n][1]
-			tmp2 = α[n][2]
-		@devec begin 
-			v[1,:] .*= u .* tmp1
-			v[2,:] .*= u .* tmp2
-			π[n] = v
+		
+		#α[n] .*= phi[n] # ~2e-6 seconds, 752 bytes
+		#@devec α[n] .*= phi[n] # 4e-7 seconds, 112 bytes
+		for i=1:2 α[n][i] .*= phi[n][i]; end # ~2.5e-7 seconds, 0 bytes
+		
+		v = psi[n]
+		tmp1 = α[n][1]
+		tmp2 = α[n][2]
+	
+		@devec v[1,:] .*= phi[n+1] .* β[n+1] .* tmp1
+		@devec v[2,:] .*= phi[n+1] .* β[n+1] .* tmp2
+		π[n] = v
 
-			tmp = sum(π[n])
-			π[n] ./= tmp
-		end
+		tmp = sum(π[n])
+		for i=1:4 π[n][i] /= tmp; end		
 	end
-	@devec α[N] .*= phi[N]
+	for i=1:2 α[N][i] .*= phi[N][i]; end
+	
 	for n=1:N
-		@devec begin
-			σ[n] = α[n] .* β[n]
+		
+			for i=1:2 σ[n][i] = α[n][i] .* β[n][i]; end
 			tmp = sum(σ[n])
-			σ[n] ./= tmp
-		end
+			for i=1:2 σ[n][i] /= tmp; end
+			#@time for i=1:2 σ[n][i] /= tmp; end
+		
 	end
 	return sto.μ
 end

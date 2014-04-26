@@ -1,18 +1,18 @@
 ##############
 # Test suite
 ##############
+function make_test_data{T}(::Type{T},n=1)
+	width = 15
+	height = 20
+	F = [rand(T,height,width,42) for i=1:n]
+	G = [rand(T,height,width-1,3) for i=1:n]
+
+	features = [represent_features(T,F[i],G[i]) for i=1:n]
+	labels = [array_to_rows(int(rand(T,height,width)).+1) for i=1:n]
+	return features, labels
+end
+
 function test{T}(::Type{T}=Float64,ε=1e-8)
-
-	function make_test_data(n=1)
-		width = 15
-		height = 20
-		F = [rand(T,height,width,42) for i=1:n]
-		G = [rand(T,height,width-1,3) for i=1:n]
-
-		features = [represent_features(T,F[i],G[i]) for i=1:n]
-		labels = [array_to_rows(int(rand(T,height,width)).+1) for i=1:n]
-		return features, labels
-	end
 
 	function common!(feat,sto)
 		fill!(μ_model,0.)
@@ -45,7 +45,7 @@ function test{T}(::Type{T}=Float64,ε=1e-8)
 		return dot(weights,μ_emp) - logPartition(sto.θ,sto.μ), μ_emp - μ_model
 	end
 
-	features,labels = make_test_data()
+	features,labels = make_test_data(T)
 	
 	M = 96
 	gradient = zeros(T,M)
@@ -98,7 +98,7 @@ function bench_gradient{T}(::Type{T}=Float64;lst::Array{Int,1}=[10])
 		writecsv(lel,memory)
 	end
 	writedlm("names.csv",ks,',')
-	println("Written output to",pwd())
+	println("Written output to ",pwd())
 	cd("../..")
 
 end

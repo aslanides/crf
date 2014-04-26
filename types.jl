@@ -19,7 +19,6 @@ module MyTypes
 		μ::Stats{T}
 		ψ::Stats{T}
 		θ::Stats{T}
-		temp::Array{T,1}
 	end
 
 end

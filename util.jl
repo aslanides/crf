@@ -54,9 +54,11 @@ function init_messages{T}(::Type{T},N)
 end
 
 function init_storage{T}(::Type{T},N)
-	s = MyTypes.Storage(init_messages(T,N),init_stats(T,N,2),init_stats(T,N,2),init_stats(T,N,2),Array(T,2))
-	s.messages.forward[1] = ones(T,2)
-	s.messages.backward[N] = ones(T,2)
+	s = MyTypes.Storage(init_messages(T,N),init_stats(T,N,2),init_stats(T,N,2),init_stats(T,N,2))
+	for i=1:N
+		s.messages.forward[i] = ones(T,2)
+		s.messages.backward[i] = ones(T,2)
+	end
 	return s
 end
 
@@ -290,6 +292,11 @@ function dir_today()
 	cd(dirname)
 end
 
+function home()
+	cd(string(homedir(),"/Git/crf/"))
+	include("horses.jl")
+end
+
 function img_to_csv(predictions,truths)
 	cd("output")
 	dir_today()
@@ -309,4 +316,17 @@ function make_csv(images,name::String)
 		writedlm(file,tmp)
 		close(file)
 	end
+end
+#############################
+# Timing/profiling
+#############################
+macro mytime(ex)
+    quote
+        local b0 = gc_bytes()
+        local t0 = time_ns()
+        local val = $(esc(ex))
+        local t1 = time_ns()
+        local b1 = gc_bytes()
+        (t1-t0)/1e9, b1-b0
+    end
 end

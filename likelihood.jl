@@ -1,7 +1,7 @@
 #####################
 # Training function
 #####################
-function train{T}(::Type{T},n,max_iter,λ=0.)
+function train{T}(::Type{T}=Float64,n=1,max_iter=100,λ=0.)
 
 	function CG_gradient(g,weights::Vector)
 		l, tmp,jnk1,jnk2 = get_gradient(weights,features,labels,λ)
@@ -44,34 +44,34 @@ function get_gradient{T}(weights::Array{T,1},feats::Array{MyTypes.Features{T},1}
 		height = length(feats[img])
 		width = length(labs[img][1])
 
-		jnk,a,b = @timed (sto = init_storage(T,width))
+		a,b = @mytime (sto = init_storage(T,width))
 		t[1] += a; mem[1] += b
 
 		for row=1:height
 			fill!(μ_model,zero(T))
 			fill!(μ_emp,zero(T))
 
-			jnk,a,b = @timed big_dot!(weights,feats[img][row],sto.θ)
+			a,b = @mytime big_dot!(weights,feats[img][row],sto.θ)
 			t[2] += a; mem[2] += b
 			
-			jnk,a,b = @timed big_exp!(sto.θ,sto.ψ)
+			a,b = @mytime big_exp!(sto.θ,sto.ψ)
 			t[3] += a; mem[3] += b
 			
-			jnk,a,b = @timed getMessages!(sto)
+			a,b = @mytime getMessages!(sto)
 			t[4] += a; mem[4] += b
 			
-			jnk,a,b = @timed getMarginals!(sto)
+			a,b = @mytime getMarginals!(sto)
 			t[5] += a; mem[5] += b
 			
-			jnk,a,b = @timed big_dot!(sto.μ,feats[img][row],μ_model)
+			a,b = @mytime big_dot!(sto.μ,feats[img][row],μ_model)
 			t[6] += a; mem[6] += b
-
-			jnk,a,b = @timed empiricals!(feats[img][row],labs[img][row],μ_emp)
+			
+			a,b = @mytime empiricals!(feats[img][row],labs[img][row],μ_emp)
 			t[7] += a; mem[7] += b
-
-			jnk,a,b = @timed (A = logPartition(sto.θ,sto.μ))
+			
+			a,b = @mytime (A = logPartition(sto.θ,sto.μ))
 			t[8] += a; mem[8] += b
-
+			
 			likelihood += dot(weights,μ_emp) - A
 			@devec gradient += μ_emp - μ_model
 		end
