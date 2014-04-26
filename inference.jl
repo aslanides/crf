@@ -15,7 +15,7 @@ function getMessages!(sto)
 			β[N-i+1] = phi[N-i+2] .* β[N-i+2]
 		end
 
-		α[i] = psi[i-1]' * α[i] # can't devec matrix computations
+		α[i] = psi[i-1]' * α[i] # devec?
 		β[N-i+1] = psi[N-i+1] * β[N-i+1]
 		
 		@devec begin
