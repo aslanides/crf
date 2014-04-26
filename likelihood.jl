@@ -112,23 +112,23 @@ function entropy{T}(μ::MyTypes.Stats{T})
 	π = μ.pairs
 	σ = μ.single
 	N = length(σ)
-	H = 0.
-	I = 0.
-	v = zeros(T,2,2)
+	H = zero(T)
+	I = zero(T)
+	
 	for i=1:N
-		@devec H += -1.0 .* sum(σ[i] .* log(σ[i]))
-	end
-
-	for i=1:N-1
-		tmp1 = σ[i+1][1]
-		tmp2 = σ[i+1][2]
-		@devec begin
-			v[:,1] = σ[i] .* tmp1
-			v[:,2] = σ[i] .* tmp2
-			I += sum(π[i] .* log(π[i] ./ v))
+		for j=1:2
+			H += -one(T) * σ[i][j] * log(σ[i][j])
 		end
-
 	end
+	
+	for i=1:N-1
+		for j=1:2
+			for k=1:2
+				I += π[i][j,k] * log(π[i][j,k] / (σ[i][j] * σ[i+1][k]))
+			end
+		end
+	end
+
 	return H - I
 end
 ###############

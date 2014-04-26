@@ -2,9 +2,7 @@
 # Import, Build feature/label repr.
 ####################################
 function prepare_data{T}(::Type{T},dataset::String,n_images=30) 
-	if !isdefined(:data)
-		global const data = get_data(dataset)
-	end
+	data = get_data(dataset)
 	imgs = randperm(length(data[1]))[1:n_images]
 	println("Making features...")
 	features = [represent_features(T,data[2][i],data[3][i]) for i in imgs]
@@ -13,6 +11,7 @@ function prepare_data{T}(::Type{T},dataset::String,n_images=30)
 	for i=1:length(imgs)
 		labels[i] = array_to_rows(data[1][imgs[i]])
 	end
+	data = 0.
 	return features::Array{MyTypes.Features{T},1},labels
 end
 #####################

@@ -322,11 +322,11 @@ end
 #############################
 macro mytime(ex)
     quote
-        local b0 = gc_bytes()
+        local b0 = Base.gc_bytes()
         local t0 = time_ns()
         local val = $(esc(ex))
         local t1 = time_ns()
-        local b1 = gc_bytes()
+        local b1 = Base.gc_bytes()
         (t1-t0)/1e9, b1-b0
     end
 end

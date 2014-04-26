@@ -14,11 +14,15 @@ function getMessages!(sto)
 		for j=1:2 α[i][j] = phi[i-1][j] *  α[i-1][j]; end
 		for j=1:2 β[N-i+1][j] = phi[N-i+2][j] * β[N-i+2][j]; end
 		
+		#@time α[i] = psi[i-1]' * α[i]
+		tmp = α[i][1]
+		α[i][1] = α[i][1] * psi[i-1][1,1] + α[i][2] * psi[i-1][2,1]
+		α[i][2] = tmp * psi[i-1][1,2] + α[i][2] * psi[i-1][2,2]
 
-		α[i] = psi[i-1]' * α[i] # devec?
-		β[N-i+1] = psi[N-i+1] * β[N-i+1]
-		
-	
+		tmp = β[N-i+1][1]
+		β[N-i+1][1] = β[N-i+1][1] * psi[N-i+1][1,1] + β[N-i+1][2] * psi[N-i+1][1,2]
+		β[N-i+1][2] = tmp * psi[N-i+1][2,1] + β[N-i+1][2] * psi[N-i+1][2,2]
+					
 		tmp = sum(α[i])
 		for j=1:2 α[i][j] /= tmp; end
 		tmp = sum(β[N-i+1])
