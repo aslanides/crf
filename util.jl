@@ -65,7 +65,7 @@ end
 #############################
 # Rasterization/undo functions
 #############################
-function array_to_rows{T}(array::Array{T,2})
+function array_to_rows{T}(::Type{T},array::Array{T,2})
 	height,width = size(array)
 	rows = Array(Array{T,1},height)
 	for i=1:height
