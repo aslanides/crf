@@ -12,7 +12,7 @@ function prepare_data{T}(::Type{T}=Float64,dataset::String="data/horses_train.ma
 	return features::Array{MyTypes.Features{T},1},labels::Array{Array{Array{Int64,1},1},1}
 end
 
-function p_prepare_data{T}(::Type{T},dataset::String,n_images=30) 
+function p_prepare_data{T}(::Type{T}=Float64,dataset::String="data/horses_train.mat",n_images=30) 
 	data = get_data(dataset)
 	imgs = randperm(length(data[1]))[1:n_images]
 	println("Making features...")
