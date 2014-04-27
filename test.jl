@@ -8,7 +8,7 @@ function make_test_data{T}(::Type{T},n=1)
 	G = [rand(T,height,width-1,3) for i=1:n]
 
 	features = [represent_features(T,F[i],G[i]) for i=1:n]
-	labels = [array_to_rows(int(rand(T,height,width)).+1) for i=1:n]
+	labels = [array_to_rows(Int64,int(rand(T,height,width)).+1) for i=1:n]
 	return features, labels
 end
 
@@ -70,35 +70,4 @@ function test{T}(::Type{T}=Float64,ε=1e-8)
 	println("∂A/∂θ: ",gradCheck(x->∂A∂θ(x,features[1][1]),pack_stats(sto.θ)) < ε)
 	println("∂A/∂w: ",gradCheck(x->∂A∂w(x,features[1][1]),w) < ε)
 	println("∂Λ/∂w: ",gradCheck(x->∂Λ∂w(x,features[1][1],labels[1][1]),w) < ε)
-end
-##############
-# Benchmark
-##############
-function bench_gradient{T}(::Type{T}=Float64;lst::Array{Int,1}=[10])
-	srand(1)
-	features,labels = prepare_data(T,"/Users/john/Dropbox/Machine\ Learning/Tutorials/Horses/data/horses_train.mat",maximum(lst))
-	w = rand(T,96)
-	ks = ["storage","mrf_params","potentials","messages","marginals","μ_model","μ_emp","log_partition"]
-	times = zeros(T,length(ks),length(lst))
-	memory = zeros(T,length(ks),length(lst))
-	tic()
-	for i=1:length(lst)
-		println("Benchmarking on ",lst[i]," images (max ",maximum(lst),")...")
-		(junk1,junk2,times[:,i],memory[:,i]) = get_gradient(w,features[1:lst[i]],labels[1:lst[i]])
-	end
-	toc()
-	cd("benchmarks")
-	dir_today()
-	open("timing.csv","a") do lel
-		writecsv(lel,lst[:])
-		writecsv(lel,times)
-	end
-	open("memory.csv","a") do lel
-		writecsv(lel,lst)
-		writecsv(lel,memory)
-	end
-	writedlm("names.csv",ks,',')
-	println("Written output to ",pwd())
-	cd("../..")
-
 end
