@@ -30,60 +30,54 @@ end
 ###################
 # Main computation
 ###################
-function get_gradient{T}(weights::Array{T,1},feats::Array{MyTypes.Features{T},1},labs,λ=0.)
-	M = length(weights) 
+function total_gradient{T}(weights::Array{T,1},feats::Array{MyTypes.Features{T},1},labs::Array{Array{Array{Int64,1},1},1},λ=0.)
+	D = sum([length(feats[img]) for img=1:length(feats)])
+	M = length(weights)
+	gradient = zeros(T,M)
+	likelihood = zero(T)
+
+	for img=1:length(feats)
+		a,b = single_gradient(weights,feats[img],labs[img])
+		likelihood += a
+		@devec gradient += b
+	end
+	likelihood /= D
+	likelihood -= 0.5λ * norm(weights)^2
+	gradient /= D
+	gradient -= λ * norm(weights)
+
+	return (-1.*likelihood,-1.*gradient)
+end
+
+function single_gradient{T}(weights::Array{T,1},feat::MyTypes.Features{T},lab::Array{Array{Int64,1},1})
+	
+	height = length(feat)
+	width = length(lab[1])
+
+	M = length(weights)
 	gradient = zeros(T,M)
 	μ_model = zeros(T,M)
 	μ_emp = zeros(T,M)
 	likelihood = zero(T)
-	
-	t = zeros(T,8)
-	mem = zeros(Int64,8)
-	
-	for img=1:length(feats)
-		height = length(feats[img])
-		width = length(labs[img][1])
 
-		a,b = @mytime (sto = init_storage(T,width))
-		t[1] += a; mem[1] += b
+	sto = init_storage(T,width)
 
-		for row=1:height
-			fill!(μ_model,zero(T))
-			fill!(μ_emp,zero(T))
+	for row=1:height
+		fill!(μ_model,zero(T))
+		fill!(μ_emp,zero(T))
 
-			a,b = @mytime big_dot!(weights,feats[img][row],sto.θ)
-			t[2] += a; mem[2] += b
-			
-			a,b = @mytime big_exp!(sto.θ,sto.ψ)
-			t[3] += a; mem[3] += b
-			
-			a,b = @mytime getMessages!(sto)
-			t[4] += a; mem[4] += b
-			
-			a,b = @mytime getMarginals!(sto)
-			t[5] += a; mem[5] += b
-			
-			a,b = @mytime big_dot!(sto.μ,feats[img][row],μ_model)
-			t[6] += a; mem[6] += b
-			
-			a,b = @mytime empiricals!(feats[img][row],labs[img][row],μ_emp)
-			t[7] += a; mem[7] += b
-			
-			a,b = @mytime (A = logPartition(sto.θ,sto.μ))
-			t[8] += a; mem[8] += b
-			
-			likelihood += dot(weights,μ_emp) - A
-			@devec gradient += μ_emp - μ_model
-		end
+		big_dot!(weights,feat[row],sto.θ)
+		big_exp!(sto.θ,sto.ψ)
+		getMessages!(sto)
+		getMarginals!(sto)
+		big_dot!(sto.μ,feat[row],μ_model)
+		empiricals!(feat[row],lab[row],μ_emp)
+		likelihood += dot(weights,μ_emp) - logPartition(sto.θ,sto.μ)
+		@devec gradient += μ_emp - μ_model
 	end
-
-	D = sum([length(feats[img]) for img=1:length(feats)])
-	likelihood /= D
-	likelihood -= 0.5λ * norm(weights)^2
-	gradient -= λ * norm(weights)
-
-	return (-1.*likelihood,-1.*gradient,t,mem)
+	return likelihood, gradient
 end
+
 ####################
 # Compute empiricals
 ####################
