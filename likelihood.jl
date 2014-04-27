@@ -4,7 +4,7 @@
 function train{T}(::Type{T}=Float64,n=1,max_iter=100,λ=0.)
 
 	function CG_gradient(g,weights::Vector)
-		l, tmp = total_gradient(weights,features,labels,λ)
+		l, tmp = p_total_gradient(weights,features,labels)
 		
 		if !(g === nothing)
 			gptr = pointer(g)
@@ -16,7 +16,7 @@ function train{T}(::Type{T}=Float64,n=1,max_iter=100,λ=0.)
 		return l
 	end
 
-	features,labels = prepare_data(T,"data/horses_train.mat",n)
+	features,labels = p_prepare_data(T,"data/horses_train.mat",n)
 	w = zeros(T,96)
 	ops = @options display=Optim.ITER fcountmax=max_iter tol=1e-4
 	@time w, lval, cnt, conv = cgdescent(CG_gradient,w,ops)
