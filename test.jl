@@ -8,7 +8,7 @@ function make_test_data{T}(::Type{T},n=1)
 	G = [rand(T,height,width-1,3) for i=1:n]
 
 	features = [represent_features(T,F[i],G[i]) for i=1:n]
-	labels = [array_to_rows(Int64,int(rand(T,height,width)).+1) for i=1:n]
+	labels = [array_to_rows(Int32,int(rand(T,height,width)).+1) for i=1:n]
 	return features, labels
 end
 
