@@ -1,25 +1,27 @@
 ####################################
 # Import, Build feature/label repr.
 ####################################
-function prepare_data{T}(::Type{T}=Float64,dataset::String="data/horses_train.mat",n_images=30) 
-	data = get_data(dataset)
+function prepare_data{T}(n_images=30,::Type{T}=Float64;dataset::String="data/horses_train.mat",cache=true) 
+	cache ? (!isdefined(:data) ? (global data = get_data(dataset)) : nothing) : (data = get_data(dataset))
 	imgs = randperm(length(data[1]))[1:n_images]
 	println("Making features...")
 	features = [represent_features(T,data[2][i],data[3][i]) for i in imgs]
 	println("Making labels...")
 	labels = [array_to_rows(Int64,data[1][i]) for i in imgs]
-	data = 0.
+	cache ? nothing : (data = 0.)
 	return features::Array{MyTypes.Features{T},1},labels::Array{Array{Array{Int64,1},1},1}
 end
-
-function p_prepare_data{T}(::Type{T}=Float64,dataset::String="data/horses_train.mat",n_images=30) 
-	data = get_data(dataset)
+####################################
+# Parallel version
+####################################
+function p_prepare_data{T}(n_images=30,::Type{T}=Float64;dataset::String="data/horses_train.mat",cache=true) 
+	cache ? (!isdefined(:data) ? (global data = get_data(dataset)) : nothing) : (data = get_data(dataset))
 	imgs = randperm(length(data[1]))[1:n_images]
 	println("Making features...")
 	features = @parallel [represent_features(T,data[2][i],data[3][i]) for i in imgs]
 	println("Making labels...")
 	labels = @parallel [array_to_rows(Int64,data[1][i]) for i in imgs]
-	data = 0.
+	cache ? nothing : (data = 0.)
 	return features::DArray,labels::DArray
 end
 
