@@ -4,7 +4,7 @@
 function train{T}(::Type{T}=Float64,n=1,max_iter=100,λ=0.)
 
 	function CG_gradient(g,weights::Vector)
-		l, tmp = p_total_gradient(weights,features,labels)
+		l, tmp = p_total_gradient(weights,features,labels,λ)
 		
 		if !(g === nothing)
 			gptr = pointer(g)
@@ -30,8 +30,8 @@ end
 ###################
 # Main computation
 ###################
-function p_total_gradient{T}(weights::Vector{T},feats::DArray,labs::DArray)
-	#D = sum([length(feats[img]) for img=1:length(feats)])
+function p_total_gradient{T}(weights::Vector{T},feats::DArray,labs::DArray,λ=0.)
+	D = sum(map(fetch,{@spawnat p sum([length(localpart(feats)[i]) for i=1:length(localpart(feats))]) for p in feats.pmap}))
 	M = length(weights)
 	gradient = zeros(T,M)
 	likelihood = zero(T)
@@ -42,10 +42,10 @@ function p_total_gradient{T}(weights::Vector{T},feats::DArray,labs::DArray)
 		gradient += rofl[i][2]
 	end
 
-	# likelihood /= D
-	# likelihood -= 0.5λ * norm(weights)^2
-	# gradient /= D
-	# gradient -= λ * norm(weights)
+	likelihood /= D
+	likelihood -= 0.5λ * norm(weights)^2
+	gradient /= D
+	gradient -= λ * norm(weights)
 	return (-1*likelihood, -1.*gradient)
 end
 
