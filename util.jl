@@ -330,3 +330,14 @@ macro mytime(ex)
         (t1-t0)/1e9, b1-b0
     end
 end
+
+macro p_time(pex) # assumes pex will use all available workers
+	quote
+		local b0 = sum(map(fetch,{@spawnat p Base.gc_bytes() for p in [1:nprocs()]}))
+		local t0 = time_ns()
+		local val = $(esc(pex))
+		local t1 = time_ns()
+		local b1 = sum(map(fetch,{@spawnat p Base.gc_bytes() for p in [1:nprocs()]}))
+		println("elapsed time: ",(t1-t0)/1e9," seconds (",b1-b0," bytes allocated on ",nprocs()," processes)")
+	end
+end
