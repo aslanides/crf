@@ -2,26 +2,32 @@
 # Import, Build feature/label repr.
 ####################################
 function prepare_data{T}(n_images=30,::Type{T}=Float64;dataset::String="data/horses_train.mat",cache=true) 
-	cache ? (!isdefined(:data) ? (global data = get_data(dataset)) : nothing) : (data = get_data(dataset))
+	cache ? (!isdefined(:data) ? (global data = get_data(dataset)) : nothing) : (global data = get_data(dataset))
 	imgs = randperm(length(data[1]))[1:n_images]
 	println("Making features...")
 	features = [represent_features(T,data[2][i],data[3][i]) for i in imgs]
 	println("Making labels...")
-	labels = [array_to_rows(Int64,data[1][i]) for i in imgs]
+	labels = [array_to_rows(Int32,data[1][i]) for i in imgs]
 	cache ? nothing : (data = 0.)
-	return features::Array{MyTypes.Features{T},1},labels::Array{Array{Array{Int64,1},1},1}
+	println("Done.")
+	return features::Array{MyTypes.Features{T},1},labels::Array{Array{Array{Int32,1},1},1}
 end
 ####################################
 # Parallel version
 ####################################
 function p_prepare_data{T}(n_images=30,::Type{T}=Float64;dataset::String="data/horses_train.mat",cache=true) 
-	cache ? (!isdefined(:data) ? (global data = get_data(dataset)) : nothing) : (data = get_data(dataset))
+	cache ? (!isdefined(:data) ? (global data = get_data(dataset)) : nothing) : (global data = get_data(dataset))
 	imgs = randperm(length(data[1]))[1:n_images]
 	println("Making features...")
+	tic()
 	features = @parallel [represent_features(T,data[2][i],data[3][i]) for i in imgs]
+	toc()
 	println("Making labels...")
-	labels = @parallel [array_to_rows(Int64,data[1][i]) for i in imgs]
+	tic()
+	labels = @parallel [array_to_rows(Int32,data[1][i]) for i in imgs]
+	toc()
 	cache ? nothing : (data = 0.)
+	println("Done.")
 	return features::DArray,labels::DArray
 end
 
@@ -59,5 +65,5 @@ end
 function get_data(file)
 	println("Loading $file...")
 	file = matopen(file)
-	return (map(int,read(file,"Y")),read(file,"F"),read(file,"G_hor"))
+	return (map(int32,read(file,"Y")),read(file,"F"),read(file,"G_hor"))
 end
