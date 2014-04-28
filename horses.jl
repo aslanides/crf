@@ -12,3 +12,4 @@ include("likelihood.jl")
 include("test.jl")
 
 cd("/Users/john/Dropbox/Machine\ Learning/Tutorials/Horses/")
+srand(1)
