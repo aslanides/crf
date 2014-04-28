@@ -21,7 +21,7 @@ function getMessages!(sto)
 		tmp = β[N-i+1][1]
 		β[N-i+1][1] = β[N-i+1][1] * psi[N-i+1][1,1] + β[N-i+1][2] * psi[N-i+1][1,2]
 		β[N-i+1][2] = tmp * psi[N-i+1][2,1] + β[N-i+1][2] * psi[N-i+1][2,2]
-					
+
 		tmp = sum(α[i])
 		for j=1:2 α[i][j] /= tmp; end
 		tmp = sum(β[N-i+1])
