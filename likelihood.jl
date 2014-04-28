@@ -1,7 +1,7 @@
 #####################
 # Training function
 #####################
-function train{T}(::Type{T}=Float64,n=1,max_iter=100,λ=0.)
+function train{T}(n=1,::Type{T}=Float64;max_iter=100,λ=0.,ε=1e-3)
 
 	function CG_gradient(g,weights::Vector)
 		l, tmp = p_total_gradient(weights,features,labels,λ)
@@ -16,13 +16,13 @@ function train{T}(::Type{T}=Float64,n=1,max_iter=100,λ=0.)
 		return l
 	end
 
-	features,labels = p_prepare_data(T,"data/horses_train.mat",n)
+	features,labels = p_prepare_data(n,T)
 	w = zeros(T,96)
-	ops = @options display=Optim.ITER fcountmax=max_iter tol=1e-4
+	ops = @options display=Optim.ITER fcountmax=max_iter tol=ε
 	@time w, lval, cnt, conv = cgdescent(CG_gradient,w,ops)
-
-	predictions = [predict(w,features[i]) for i=1:n]
-	truth = [rows_to_array(labels[i]) for i=1:n]
+	println("Writing predictions...")
+	predictions = [predict(w,features[i]) for i=1:n] # todo: make explicitly parallel: faster?
+	truth = [rows_to_array(labels[i]) for i=1:n] # ditto 
 	img_to_csv(predictions,truth)
 
 	return w
@@ -36,7 +36,7 @@ function p_total_gradient{T}(weights::Vector{T},feats::DArray,labs::DArray,λ=0.
 	gradient = zeros(T,M)
 	likelihood = zero(T)
 	rofl = map(fetch,{@spawnat p total_gradient(weights,localpart(feats),localpart(labs)) for p in feats.pmap})
-	
+
 	for i=1:length(rofl)
 		likelihood += rofl[i][1]
 		gradient += rofl[i][2]
@@ -49,7 +49,7 @@ function p_total_gradient{T}(weights::Vector{T},feats::DArray,labs::DArray,λ=0.
 	return (-1*likelihood, -1.*gradient)
 end
 
-function total_gradient{T}(weights::Vector{T},feats::Vector{MyTypes.Features{T}},labs::Array{Array{Array{Int64,1},1},1},λ=0.)
+function total_gradient{T}(weights::Vector{T},feats::Vector{MyTypes.Features{T}},labs::Array{Array{Array{Int32,1},1},1},λ=0.)
 	
 	M = length(weights)
 	gradient = zeros(T,M)
@@ -68,7 +68,7 @@ function total_gradient{T}(weights::Vector{T},feats::Vector{MyTypes.Features{T}}
 	return likelihood, gradient
 end
 
-function single_gradient{T}(weights::Array{T,1},feat::MyTypes.Features{T},lab::Array{Array{Int64,1},1})
+function single_gradient{T}(weights::Array{T,1},feat::MyTypes.Features{T},lab::Array{Array{Int32,1},1})
 	
 	height = length(feat)
 	width = length(lab[1])
