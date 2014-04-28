@@ -1,5 +1,7 @@
 module MyTypes
 	
+	export Stuff,Stats,Feats,Features,Messages,Storage
+
 	type Stuff{T}
 		pairs::Array{Array{T,2},1}
 		single::Array{Array{T,1},1}
