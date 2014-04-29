@@ -16,13 +16,13 @@ function train{T}(n=1,::Type{T}=Float64;max_iter=100,λ=0.,ε=1e-3)
 		return l
 	end
 
-	features,labels = p_prepare_data(n,T)
+	features,labels = prepare_data(n,T)
 	w = zeros(T,96)
 	ops = @options display=Optim.ITER fcountmax=max_iter tol=ε
 	@time w, lval, cnt, conv = cgdescent(CG_gradient,w,ops)
 	println("Writing predictions...")
-	predictions = [predict(w,features[i]) for i=1:n] # todo: make explicitly parallel: faster?
-	truth = [rows_to_array(labels[i]) for i=1:n] # ditto 
+	predictions = map(fetch,{@spawnat p [predict(w,localpart(features)[i]) for i=1:length(localpart(features))] for p in features.pmap})
+	truth = map(fetch,{@spawnat p [rows_to_array(localpart(labels)[i]) for i=1:length(localpart(labels))] for p in features.pmap})
 	img_to_csv(predictions,truth)
 
 	return w
