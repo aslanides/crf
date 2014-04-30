@@ -348,36 +348,3 @@ macro p_time(pex) # assumes pex will use all available workers
 		println("elapsed time: ",(t1-t0)/1e9," seconds (",b1-b0," bytes allocated on ",nprocs()," processes)")
 	end
 end
-#############################
-# Justin's caching function
-#############################
-type hashed_function
-    fun::Function
-    x  # inputs
-    f  # outputs
-    age
-    hashed_function(fun::Function,N::Int) = (a = new(); a.fun=fun; a.x = Array(Any,N); a.f = Array(Any,N); a.age = Inf+zeros(Int,N); f(x)= a[x]; f)
-end
-
-function ref(h::hashed_function,x)
-    N = length(h.f)
-    # if we can find the value in the hash, return it
-    for n=1:N
-        if h.age[n]!=Inf && isequal(x,h.x[n])
-            h.age += 1
-            h.age[n] = 0
-            return h.f[n]
-        end
-    end
-    # otherwise kill off the oldest value and replace it
-    damax = max(h.age)
-    for n=1:N
-        if h.age[n]==damax
-            h.f[n] = h.fun(x)
-            h.x[n] = x
-            h.age += 1
-            h.age[n] = 0
-            return h.f[n]
-        end
-    end
-end
