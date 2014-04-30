@@ -1,14 +1,14 @@
 ####################################
 # Import, Build feature/label repr.
 ####################################
-function prepare_data{T}(n_images=30,::Type{T}=Float64;dataset::String="data/horses_train.mat",parallel=true,univ=false) 
+function prepare_data{T}(n_images=200,::Type{T}=Float64;dataset::String="data/horses_train.mat",parallel=true,univ=false) 
 	@time data = get_data(dataset)
 	imgs = randperm(length(data[1]))[1:n_images]
 	println("Making features...")
 	if parallel
 		@p_time features = @parallel [represent_features(T,data[2][i],data[3][i],univ) for i in imgs]
 	else
-		@time features = [represent_features(T,data[2][i],data[3][i]) for i in imgs]
+		@time features = [represent_features(T,data[2][i],data[3][i],univ) for i in imgs]
 	end
 	println("Making labels...")
 	@time labels = [array_to_rows(Int32,data[1][i]) for i in imgs]
@@ -16,7 +16,6 @@ function prepare_data{T}(n_images=30,::Type{T}=Float64;dataset::String="data/hor
 	println("Done.")
 	return parallel ? (features::DArray, distribute(labels)::DArray) : (features::Array{MyTypes.Features{T},1},labels::Array{Array{Array{Int32,1},1},1})
 end
-
 #####################
 # Build feature repr.
 #####################
