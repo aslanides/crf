@@ -1,45 +1,30 @@
 #####################
 # Training function
 #####################
-function train{T}(n=200;max_iter=200,λ=0.,ε=1e-3,typeske::Type{T}=Float64)
+function train{T}(n=200,::Type{T}=Float64)
 
-	function CG_gradient(g,weights::Vector)
-		l, tmp = p_total_gradient(weights,features,labels,λ)
-		
-		if !(g === nothing)
-			gptr = pointer(g)
-			g[:] = tmp
-			if pointer(g) != gptr
-				error("bad gradient pointer")
-			end
-		end
-		return l
+	features,labels = prepare_data(n,T)
+	D = sum(map(fetch,{@spawnat p sum([length(localpart(features)[i]) for i=1:length(localpart(features))]) for p in features.pmap}))
+	println(D)
+	func = MyTypes.hashed_function(x->p_total_gradient(x,features,labels))
+	f(x) = func(x)[1]/D
+	function g!(x::Vector,storage::Vector)
+		grad = func(x)[2]
+		storage[:] = grad
+		storage ./= D
 	end
 
-	initial_w = zeros(T,96)
-	ops = @options display=Optim.ITER fcountmax=max_iter tol=ε
-
-	println("Training on univariate terms...")
-	features,labels = prepare_data(n,T,univ=true)
-	@time new_w, lval, cnt, conv = cgdescent(CG_gradient,initial_w,ops) # first train on univariate terms only
-
-	@everywhere (features = 0.; labels = 0.)
-	println("Collecting trash...")
-	@everywhere gc()
-
-	println("Training full model...")
-	features,labels = prepare_data(n,T,univ=false)
-	@time w, lval, cnt, conv = cgdescent(CG_gradient,new_w,ops)	
-
-	D = sum(map(fetch,{@spawnat p sum([length(localpart(features)[i]) for i=1:length(localpart(features))]) for p in feats.pmap}))
-	println("Final likelihood (averaged over training set): ",lval/D)
-	return w
+	w_init = zeros(T,96)
+	result = optimize(f,g!,w_init,method=:l_bfgs)
+	return result.minimum,result.f_minimum
 end
+
 ###################
 # Main computation
 ###################
 function p_total_gradient{T}(weights::Vector{T},feats::DArray,labs::DArray,λ=0.)
 	M = length(weights)
+	println(weights[1:20])
 	gradient = zeros(T,M)
 	likelihood = zero(T)
 	rofl = map(fetch,{@spawnat p total_gradient(weights,localpart(feats),localpart(labs)) for p in feats.pmap})
@@ -54,6 +39,28 @@ function p_total_gradient{T}(weights::Vector{T},feats::DArray,labs::DArray,λ=0.
 end
 
 function total_gradient{T}(weights::Vector{T},feats::Vector{MyTypes.Features{T}},labs::Array{Array{Array{Int32,1},1},1})
+
+	M = length(weights)
+	gradient = zeros(T,M)
+	likelihood = zero(T)
+
+	for img=1:length(feats)
+		a,b = single_gradient(weights,feats[img],labs[img])
+		likelihood += a
+		@devec gradient += b
+
+	end
+
+	if isnan(likelihood) || isinf(likelihood)
+		warn("likelihood is NaN/Inf!")
+	end
+
+	return likelihood, gradient
+end
+
+function single_gradient{T}(weights::Array{T,1},feat::MyTypes.Features{T},lab::Array{Array{Int32,1},1})
+	height = length(feat)
+	width = length(lab[1])
 	
 	M = length(weights)
 	gradient = zeros(T,M)
@@ -61,28 +68,24 @@ function total_gradient{T}(weights::Vector{T},feats::Vector{MyTypes.Features{T}}
 	μ_model = zeros(T,M)
 	μ_emp = zeros(T,M)
 
-	for img=1:length(feats)
-		height = length(feats[img])
-		width = length(labs[img][1])
-		sto = init_storage(T,width)
+	sto = init_storage(T,width)
 
-		for row=1:height
-			fill!(μ_model,zero(T))
-			fill!(μ_emp,zero(T))
+	for row=1:height
+		fill!(μ_model,zero(T))
+		fill!(μ_emp,zero(T))
 
-			big_dot!(weights,feats[img][row],sto.θ)
-			big_exp!(sto.θ,sto.ψ)
-			getMessages!(sto)
-			getMarginals!(sto)
-			big_dot!(sto.μ,feats[img][row],μ_model)
-			empiricals!(feats[img][row],lab[row],μ_emp)
-			likelihood += dot(weights,μ_emp) - logPartition(sto.θ,sto.μ)
-			@devec gradient += μ_emp - μ_model
-		end
+		big_dot!(weights,feat[row],sto.θ)
+		big_exp!(sto.θ,sto.ψ)
+		getMessages!(sto)
+		getMarginals!(sto)
+		big_dot!(sto.μ,feat[row],μ_model)
+		empiricals!(feat[row],lab[row],μ_emp)
+		likelihood += dot(weights,μ_emp) - logPartition(sto.θ,sto.μ)
+		@devec gradient += μ_emp - μ_model
 	end
-
 	return likelihood, gradient
 end
+
 ####################
 # Compute empiricals
 ####################
