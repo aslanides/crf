@@ -1,5 +1,5 @@
 #######################################################################################################################################
-# Test suite. Running test() will compare the inference & likelihood/gradient routines to brute-forced/finite differenced versions.
+# Test suite. Running test_suite() will compare the inference & likelihood/gradient routines to brute-forced/finite differenced versions.
 #####################################################################################################################################################
 function make_test_data{T}(::Type{T},n=1)
 	width = 15
@@ -12,7 +12,7 @@ function make_test_data{T}(::Type{T},n=1)
 	return features, labels
 end
 
-function test{T}(::Type{T}=Float64,ε=1e-8)
+function test_suite{T}(::Type{T}=Float64,ε=1e-8)
 
 	function common!(feat,sto)
 		fill!(μ_model,0.)
